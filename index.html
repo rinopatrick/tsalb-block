@@ -50,7 +50,7 @@ button.icon{
 html[data-theme="classic"] button.icon{background:#334155;color:#f1f5f9}
 button.icon.off{opacity:.45;filter:grayscale(1)}
 #scorebar{display:flex;gap:8px}
-.score-card{flex:1;text-align:center;border-radius:14px;padding:6px;background:rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(236,72,153,.15)}
+.score-card{flex:1;text-align:center;border-radius:14px;padding:6px;background:rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(124,58,237,.15)}
 html[data-theme="classic"] .score-card{background:#1e293b;box-shadow:none;border:1px solid #475569}
 .score-card small{display:block;font-size:.65rem;opacity:.7;text-transform:uppercase;letter-spacing:.08em}
 .score-card b{font-size:1.3rem}
@@ -96,7 +96,7 @@ html[data-theme="midnight"] .tray-slot.selected{outline-color:var(--mid-accent)}
 #combo-pop{
   position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.5);
   font-size:2rem;font-weight:900;opacity:0;pointer-events:none;z-index:40;white-space:nowrap;
-  text-shadow:0 2px 12px rgba(236,72,153,.5);
+  text-shadow:0 2px 12px rgba(124,58,237,.5);
 }
 #combo-pop.show{animation:comboPop .9s ease forwards}
 @keyframes comboPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}60%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-80%) scale(1)}}
@@ -121,7 +121,6 @@ html[data-theme="midnight"] .card p{color:var(--mid-text)}
   transition-property:scale,opacity;transition-duration:150ms;transition-timing-function:ease-out;
 }
 .card button:not(:disabled):active{scale:.96}
-.card button:active{transform:scale(.96)}
 footer{text-align:center;font-size:.7rem;opacity:.6}
 #hint{font-size:.72rem;text-align:center;opacity:.65;min-height:1.2em}
 /* personalization (issue 01): purple-led cute accents; classic theme below untouched */
@@ -144,7 +143,7 @@ html[data-theme="midnight"] button.icon{background:#241a35;color:var(--mid-text)
 @media (hover:hover){button.icon:hover{filter:brightness(1.06)}}
 button.icon{transition-property:scale,opacity,filter;transition-duration:150ms;transition-timing-function:ease-out}
 button.icon:not(:disabled):active{scale:.96}
-@media (prefers-reduced-motion:reduce){.cell.clearing,.cell.drop-in,#combo-pop.show,.particle{animation:none}.particle{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cell.clearing,.cell.drop-in,#combo-pop.show,.particle{animation:none}.particle{opacity:0}.card button,button.icon{transition:none}}
 </style>
 </head>
 <body>
