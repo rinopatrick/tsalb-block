@@ -15,9 +15,13 @@
 <style>
 :root{
   --cute-bg1:#f5f3ff; --cute-bg2:#ede9fe; --cute-grid:#ffffff;
-  --cute-cell:#ede9fe; --cute-cell-border:#c4b5fd;
-  --cute-accent:#9333ea; --cute-accent2:#7c3aed; --cute-text:#4c1d95;
+  --cute-cell:#ede9fe; --cute-cell-border:#7c3aed;
+  --cute-accent:#7c3aed; --cute-accent2:#6d28d9; --cute-text:#4c1d95;
   --cute-tray:#ffffff;
+  --mid-bg1:#1a1025; --mid-bg2:#2a1b3d; --mid-grid:#241a35;
+  --mid-cell:#4c3d78; --mid-cell-border:#8b7cc0;
+  --mid-accent:#a78bfa; --mid-accent2:#7c3aed; --mid-text:#e9e4ff;
+  --mid-tray:#201531;
   --classic-bg1:#0f172a; --classic-bg2:#1e293b; --classic-grid:#1e293b;
   --classic-cell:#334155; --classic-cell-border:#475569;
   --classic-accent:#f59e0b; --classic-accent2:#3b82f6; --classic-text:#f1f5f9;
@@ -33,6 +37,7 @@ body{
 }
 html[data-theme="cute"] body{background:linear-gradient(160deg,var(--cute-bg1),var(--cute-bg2));color:var(--cute-text)}
 html[data-theme="classic"] body{background:linear-gradient(160deg,var(--classic-bg1),var(--classic-bg2));color:var(--classic-text)}
+html[data-theme="midnight"] body{background:linear-gradient(160deg,var(--mid-bg1),var(--mid-bg2));color:var(--mid-text)}
 #app{width:100%;max-width:430px;padding:calc(8px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;flex:1}
 header{display:flex;align-items:center;justify-content:space-between;gap:6px}
 h1{font-size:1.25rem;margin:0;white-space:nowrap}
@@ -49,7 +54,8 @@ button.icon.off{opacity:.45;filter:grayscale(1)}
 html[data-theme="classic"] .score-card{background:#1e293b;box-shadow:none;border:1px solid #475569}
 .score-card small{display:block;font-size:.65rem;opacity:.7;text-transform:uppercase;letter-spacing:.08em}
 .score-card b{font-size:1.3rem}
-#newbest{font-size:.7rem;color:#ec4899;font-weight:700;min-height:1em}
+#newbest{font-size:.7rem;color:#7c3aed;font-weight:700;min-height:1em}
+html[data-theme="midnight"] #newbest{color:var(--mid-accent)}
 #board-wrap{position:relative;width:100%}
 #board{
   display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
@@ -58,9 +64,11 @@ html[data-theme="classic"] .score-card{background:#1e293b;box-shadow:none;border
 }
 html[data-theme="cute"] #board{background:var(--cute-grid);box-shadow:0 6px 24px color-mix(in srgb,var(--cute-accent2) 25%,transparent)}
 html[data-theme="classic"] #board{background:#0b1120;border:1px solid #475569}
+html[data-theme="midnight"] #board{background:var(--mid-grid);border:1px solid var(--mid-cell-border);box-shadow:0 6px 24px color-mix(in srgb,var(--mid-accent2) 30%,transparent)}
 .cell{border-radius:6px;aspect-ratio:1/1;transition:transform .08s,background .12s}
 html[data-theme="cute"] .cell{background:var(--cute-cell);border:1px solid var(--cute-cell-border)}
 html[data-theme="classic"] .cell{background:var(--classic-cell);border:1px solid var(--classic-cell-border)}
+html[data-theme="midnight"] .cell{background:var(--mid-cell);border:1px solid var(--mid-cell-border)}
 .cell.filled{border:none;box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),inset 2px 2px 0 rgba(255,255,255,.35)}
 .cell.ghost-ok{outline:2px solid #22c55e;outline-offset:-2px;filter:brightness(1.15)}
 .cell.ghost-bad{outline:2px solid #ef4444;outline-offset:-2px}
@@ -76,8 +84,10 @@ html[data-theme="classic"] .cell{background:var(--classic-cell);border:1px solid
 }
 html[data-theme="cute"] #tray{background:var(--cute-tray);box-shadow:0 4px 16px color-mix(in srgb,var(--cute-accent2) 20%,transparent)}
 html[data-theme="classic"] #tray{background:var(--classic-tray);border:1px solid #475569}
+html[data-theme="midnight"] #tray{background:var(--mid-tray);border:1px solid var(--mid-cell-border)}
 .tray-slot{flex:1;display:flex;align-items:center;justify-content:center;min-height:84px;border-radius:12px}
-.tray-slot.selected{outline:3px dashed #ec4899;outline-offset:2px}
+.tray-slot.selected{outline:3px dashed #7c3aed;outline-offset:2px}
+html[data-theme="midnight"] .tray-slot.selected{outline-color:var(--mid-accent)}
 .piece{display:grid;gap:3px;touch-action:none;cursor:grab}
 .piece .pcell{width:22px;height:22px;border-radius:5px;box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),inset 2px 2px 0 rgba(255,255,255,.35)}
 .piece.used{visibility:hidden}
@@ -98,14 +108,19 @@ html[data-theme="classic"] .particle{text-shadow:0 0 8px currentColor,0 0 2px cu
   background:rgba(0,0,0,.55);z-index:100;padding:20px;
 }
 .overlay.show{display:flex}
-.card{background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px;width:100%;color:#831843;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.card{background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px;width:100%;color:#4c1d95;box-shadow:0 12px 40px rgba(0,0,0,.3);border:1px solid transparent}
+html[data-theme="midnight"] .card{background:#241a35;color:var(--mid-text)}
 .card h2{margin:0 0 6px}
-.card .big{font-size:2.6rem;font-weight:900;color:#ec4899}
-.card p{margin:6px 0;color:#a21caf}
+.card .big{font-size:2.6rem;font-weight:900;color:#7c3aed}
+html[data-theme="midnight"] .card .big{color:var(--mid-accent)}
+.card p{margin:6px 0;color:#4c1d95}
+html[data-theme="midnight"] .card p{color:var(--mid-text)}
 .card button{
   margin-top:12px;border:none;border-radius:14px;padding:12px 28px;font-size:1.1rem;font-weight:700;
-  background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff;cursor:pointer;width:100%;
+  background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;cursor:pointer;width:100%;
+  transition-property:scale,opacity;transition-duration:150ms;transition-timing-function:ease-out;
 }
+.card button:not(:disabled):active{scale:.96}
 .card button:active{transform:scale(.96)}
 footer{text-align:center;font-size:.7rem;opacity:.6}
 #hint{font-size:.72rem;text-align:center;opacity:.65;min-height:1.2em}
@@ -114,9 +129,22 @@ html[data-theme="cute"] #newbest{color:var(--cute-accent)}
 html[data-theme="cute"] .tray-slot.selected{outline-color:var(--cute-accent)}
 html[data-theme="cute"] .score-card{box-shadow:0 2px 8px color-mix(in srgb,var(--cute-accent) 15%,transparent)}
 html[data-theme="cute"] #combo-pop{text-shadow:0 2px 12px color-mix(in srgb,var(--cute-accent) 50%,transparent)}
+html[data-theme="midnight"] .particle{color:var(--mid-accent);text-shadow:0 0 8px currentColor,0 0 2px currentColor}
 html[data-theme="cute"] .card .big{color:var(--cute-accent)}
 html[data-theme="cute"] .card p{color:var(--cute-text)}
 html[data-theme="cute"] .card button{background:linear-gradient(135deg,var(--cute-accent),var(--cute-accent2))}
+html[data-theme="midnight"] .score-card{background:#241a35;box-shadow:none;border:1px solid var(--mid-cell-border);color:var(--mid-text)}
+html[data-theme="midnight"] .tray-slot.selected{outline-color:var(--mid-accent)}
+html[data-theme="midnight"] #newbest{color:var(--mid-accent)}
+html[data-theme="midnight"] #combo-pop{text-shadow:0 2px 12px color-mix(in srgb,var(--mid-accent) 60%,transparent)}
+html[data-theme="midnight"] .card .big{color:var(--mid-accent)}
+html[data-theme="midnight"] .card p{color:var(--mid-text)}
+html[data-theme="midnight"] .card button{background:linear-gradient(135deg,var(--mid-accent2),#4c1d95)}
+html[data-theme="midnight"] button.icon{background:#241a35;color:var(--mid-text);border-color:var(--mid-cell-border)}
+@media (hover:hover){button.icon:hover{filter:brightness(1.06)}}
+button.icon{transition-property:scale,opacity,filter;transition-duration:150ms;transition-timing-function:ease-out}
+button.icon:not(:disabled):active{scale:.96}
+@media (prefers-reduced-motion:reduce){.cell.clearing,.cell.drop-in,#combo-pop.show,.particle{animation:none}.particle{opacity:0}}
 </style>
 </head>
 <body>
@@ -334,7 +362,7 @@ const sfx = {
 };
 const ENCOURAGE_CUTE=["Sweet!","Nice!","Amazing!","So good!","Brilliant!","Lovely!","Super!"];
 const ENCOURAGE_CLASSIC=["Nice!","Great!","Excellent!","Brilliant!","Superb!","Well played!"];
-function pickEncourage(){ const a=theme==="cute"?ENCOURAGE_CUTE:ENCOURAGE_CLASSIC; return a[Math.floor(Math.random()*a.length)]; }
+function pickEncourage(){ const a=theme==="classic"?ENCOURAGE_CLASSIC:ENCOURAGE_CUTE; return a[Math.floor(Math.random()*a.length)]; }
 let idleTimer=null;
 const HINT_DEFAULT="drag a piece onto the board or tap piece then tap board";
 function clearHint(){
@@ -359,7 +387,7 @@ function pokeIdle(){
   },7000);
 }
 function buzz(p){ if(vibOn && navigator.vibrate) try{navigator.vibrate(p);}catch{} }
-function palette(){ return theme==="cute"?CUTE_COLORS:CLASSIC_COLORS; }
+function palette(){ return theme==="classic"?CLASSIC_COLORS:CUTE_COLORS; }
 function shapeBounds(cells){
   return {h:Math.max(...cells.map(c=>c[0]))+1, w:Math.max(...cells.map(c=>c[1]))+1};
 }
@@ -422,8 +450,8 @@ function particles(cells, isBigClear){
     const from=cellAt(r,c).getBoundingClientRect();
     const s=document.createElement("div");
     s.className="particle";
-    s.textContent = theme==="cute" ? ["💖","✨","⭐","💕"][Math.floor(Math.random()*4)] : "✦";
-    if(theme!=="cute") s.style.color=pal[Math.floor(Math.random()*pal.length)];
+    s.textContent = theme==="classic" ? "✦" : ["💖","✨","⭐","💕"][Math.floor(Math.random()*4)];
+    if(theme!=="classic") s.style.color=pal[Math.floor(Math.random()*pal.length)];
     s.style.left=(from.left+from.width/2+ (Math.random()*20-10))+"px";
     s.style.top=(from.top+from.height/2)+"px";
     document.body.appendChild(s);
@@ -447,8 +475,8 @@ function endCheck(){
     setTimeout(()=>{
       $("final-score").textContent=score;
       $("final-best").textContent=best;
-      $("over-msg").textContent = isBest ? "🎉 new best, princess! 🎉" : (theme==="cute"?"so close, princess! one more? 💕":"");
-      $("over-emoji").textContent = theme==="cute"?"💖 Game Over!":"Game Over";
+      $("over-msg").textContent = isBest ? "🎉 new best, princess! 🎉" : (theme==="classic"?"":theme==="midnight"?"so close, princess! one more? 🌙":"so close, princess! one more? 💕");
+      $("over-emoji").textContent = theme==="classic"?"Game Over":theme==="midnight"?"💜 Game Over!":"💖 Game Over!";
       $("ov-over").classList.add("show");
       sfx.over(); buzz([100,50,100]);
     },450);
@@ -471,10 +499,10 @@ function doPlace(slotIdx, ar, ac){
     playPlan(soundPlanFor(evt)); // one plan per clear: never clips or stacks harshly
     const now=(typeof performance!=='undefined'?performance.now():Date.now());
     switch(calloutKindFor(evt)){ // exactly one callout per clear: never double-fires
-      case 'board-clear': showCombo(theme==="cute"?"Board Clear!":"BOARD CLEAR!", theme==="cute"?"star":"spark"); buzz([50,50,50,50,80]); break;
-      case 'combo': showCombo("Combo x"+streak+"!", theme==="cute"?"heart":"fire"); buzz([30,40,30]); break;
+      case 'board-clear': showCombo(theme==="classic"?"BOARD CLEAR!":"Board Clear!", theme==="classic"?"spark":theme==="midnight"?"star":"star"); buzz([50,50,50,50,80]); break;
+      case 'combo': showCombo("Combo x"+streak+"!", theme==="classic"?"fire":"heart"); buzz([30,40,30]); break;
       case 'multi': showCombo(res.lines+" lines!", "spark"); buzz([30,40,30]); break;
-      case 'encourage': if(encourageDue(now)){ lastEncourageAt=now; showCombo(pickEncourage(), theme==="cute"?"heart":"spark"); buzz(25); } break;
+      case 'encourage': if(encourageDue(now)){ lastEncourageAt=now; showCombo(pickEncourage(), theme==="classic"?"spark":"heart"); buzz(25); } break;
     }
   } else { sfx.place(); buzz(10); }
   if(isNewBest(score,best)){ best=score; store.set("bb_best",best); $("newbest").textContent="🎉 new best!"; }
@@ -590,12 +618,12 @@ boardEl.addEventListener("pointerdown",e=>{
 /* ---- header buttons ---- */
 function applyTheme(){
   document.documentElement.dataset.theme=theme;
-  $("title").textContent = theme==="cute" ? "💖 Princess Blast" : "🧱 Block Blast";
-  $("btn-theme").textContent = theme==="cute" ? "🎀" : "🧱";
+  $("title").textContent = theme==="cute" ? "💖 Princess Blast" : theme==="midnight" ? "💜 Princess Blast" : "🧱 Block Blast";
+  $("btn-theme").textContent = theme==="cute" ? "🎀" : theme==="midnight" ? "🌙" : "🧱";
   store.set("bb_theme",theme);
   renderBoard(); renderTray();
 }
-$("btn-theme").onclick=()=>{ theme=theme==="cute"?"classic":"cute"; applyTheme(); sfx.select(); };
+$("btn-theme").onclick=()=>{ theme=theme==="cute"?"midnight":theme==="midnight"?"classic":"cute"; applyTheme(); sfx.select(); };
 $("btn-sound").onclick=e=>{ soundOn=!soundOn; store.set("bb_sound",soundOn); e.target.classList.toggle("off",!soundOn); e.target.textContent=soundOn?"🔊":"🔇"; if(soundOn) sfx.select(); };
 $("btn-vib").onclick=e=>{ vibOn=!vibOn; store.set("bb_vib",vibOn); e.target.classList.toggle("off",!vibOn); if(vibOn) buzz(20); };
 $("btn-pause").onclick=()=>{ if(over) return; paused=true; clearTimeout(idleTimer); clearHint(); $("ov-pause").classList.add("show"); };
