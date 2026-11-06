@@ -594,9 +594,9 @@ function reset(){
 }
 /* ---- issue 15 sketch: thin missions adapter (events in, text out) ---- */
 let sketchMissions=sketchMissionsFor(), sketchDaily={seed:'',streak:0,lastDay:''};
+function todaySeed(){ const n=new Date(); return dailySeedFor(n.getFullYear(), n.getMonth()+1, n.getDate()); }
 function loadSketch(){
-  const now=new Date();
-  const seed=dailySeedFor(now.getFullYear(), now.getMonth()+1, now.getDate());
+  const seed=todaySeed();
   sketchMissions=store.get(MISSION_KEYS.missions, sketchMissionsFor());
   const saved=store.get(MISSION_KEYS.dailies, {streak:0,lastDay:''});
   sketchDaily={seed, streak:saved.streak, lastDay:saved.lastDay};
@@ -614,7 +614,7 @@ function advanceSketchMissions(evt){
     return next;
   });
   if(evt.isClear){
-    const next=sketchDailyFor({streak:sketchDaily.streak,lastDay:sketchDaily.lastDay}, sketchDaily.seed||dailySeedFor(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate()));
+    const next=sketchDailyFor({streak:sketchDaily.streak,lastDay:sketchDaily.lastDay}, sketchDaily.seed||todaySeed());
     sketchDaily={seed:next.seed, streak:next.streak, lastDay:next.lastDay};
     store.set(MISSION_KEYS.dailies, {streak:sketchDaily.streak,lastDay:sketchDaily.lastDay});
     changed=true;
