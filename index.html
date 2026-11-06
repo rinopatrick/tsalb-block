@@ -123,6 +123,12 @@ html[data-theme="midnight"] .card p{color:var(--mid-text)}
 .card button:not(:disabled):active{scale:.96}
 footer{text-align:center;font-size:.7rem;opacity:.6}
 #hint{font-size:.72rem;text-align:center;opacity:.65;min-height:1.2em}
+/* issue 15 sketch: throwaway missions panel, theme-aware, classic untouched */
+#missions{display:flex;flex-direction:column;gap:4px;border-radius:14px;padding:8px 10px;font-size:.78rem;background:rgba(255,255,255,.75)}
+html[data-theme="classic"] #missions{background:#1e293b;border:1px solid #475569}
+html[data-theme="midnight"] #missions{background:var(--mid-tray);border:1px solid var(--mid-cell-border)}
+#missions .m-row{display:flex;justify-content:space-between;gap:8px}
+#missions .m-done{font-weight:700}
 /* personalization (issue 01): purple-led cute accents; classic theme below untouched */
 html[data-theme="cute"] #newbest{color:var(--cute-accent)}
 html[data-theme="cute"] .tray-slot.selected{outline-color:var(--cute-accent)}
@@ -168,6 +174,11 @@ button.icon:not(:disabled):active{scale:.96}
     <div id="combo-pop"></div>
   </div>
   <div id="hint">drag a piece onto the board ✨ or tap piece → tap board</div>
+  <div id="missions" aria-label="missions sketch">
+    <div class="m-row" id="m-lines">Clear 10 lines: 0/10</div>
+    <div class="m-row" id="m-score">Score 500 in one run: 0/500</div>
+    <div class="m-row" id="m-daily">Daily: play one run</div>
+  </div>
   <div id="tray" aria-label="piece tray"></div>
   <footer>no ads · no trackers · made with 💖</footer>
 </div>
@@ -296,6 +307,24 @@ function dailyStreakFor(state, todaySeed){
   const gapDays = Math.round((today - prev) / 86400000);
   if(gapDays === 1) return {streak: state.streak + 1, lastDay: todaySeed};
   return {streak: 1, lastDay: todaySeed};
+}
+// issue 15 sketch: throwaway mission registry plus text, pure (no DOM/audio/storage).
+// Two fixed missions (clear 10 lines, score 500 in one run) plus one daily slot,
+// all driven by the #16 seam. Text is the only display contract the panel reads.
+function sketchMissionsFor(){
+  return [
+    {id: 'sk-lines', kind: 'lines', target: 10, progress: 0, done: false},
+    {id: 'sk-score', kind: 'score', target: 500, progress: 0, done: false},
+  ];
+}
+function sketchDailyFor(state, todaySeed){
+  const next = dailyStreakFor(state, todaySeed);
+  return {seed: todaySeed, streak: next.streak, lastDay: next.lastDay};
+}
+function sketchTextFor(m){
+  if(m.kind === 'daily') return m.done ? `Daily done — streak ${m.progress}` : 'Daily: play one run';
+  if(m.kind === 'score') return m.done ? `Score ${m.target} in one run: done!` : `Score ${m.target} in one run: ${m.progress}/${m.target}`;
+  return m.done ? `Clear ${m.target} lines: done!` : `Clear ${m.target} lines: ${m.progress}/${m.target}`;
 }
 // ---- issue 05 juice policy: pure caps + plans, no DOM/audio/storage ----
 // CLEAR_MS/DROP_MS small so 180ms render matches SFX gap (doPlace), never block next placement.
@@ -535,6 +564,7 @@ function doPlace(slotIdx, ar, ac){
   // strict combo: streak builds only on consecutive clearing placements, dry placement resets
   const boardCleared=res.lines>0&&board.every(row=>row.every(v=>!v));
   const evt=missionEventFor({lines:res.lines,clearedCount:res.clearedCells.length,streakAfter:streak,boardCleared,cellsPlaced:res.cellsPlaced});
+  advanceSketchMissions(evt); // issue 15 sketch: thin adapter, events only
   if(res.clearedCells.length){
     res.clearedCells.forEach(([r,c])=>cellAt(r,c).classList.add("clearing"));
     particles(res.clearedCells, res.lines>1||boardCleared);
@@ -559,7 +589,52 @@ function reset(){
   clearTimeout(idleTimer); clearHint();
   $("newbest").textContent="";
   $("ov-over").classList.remove("show"); $("ov-pause").classList.remove("show");
-  newBatch(); renderBoard(); renderTray(); pokeIdle();
+  resetSketchRun(); // issue 15 sketch: per-run missions reset, daily streak persists
+  newBatch(); renderBoard(); renderTray(); renderSketchMissions(); pokeIdle();
+}
+/* ---- issue 15 sketch: thin missions adapter (events in, text out) ---- */
+let sketchMissions=sketchMissionsFor(), sketchDaily={seed:'',streak:0,lastDay:''};
+function todaySeed(){ const n=new Date(); return dailySeedFor(n.getFullYear(), n.getMonth()+1, n.getDate()); }
+function loadSketch(){
+  const seed=todaySeed();
+  sketchMissions=store.get(MISSION_KEYS.missions, sketchMissionsFor());
+  const saved=store.get(MISSION_KEYS.dailies, {streak:0,lastDay:''});
+  sketchDaily={seed, streak:saved.streak, lastDay:saved.lastDay};
+}
+function resetSketchRun(){
+  sketchMissions=sketchMissionsFor();
+  store.set(MISSION_KEYS.missions, sketchMissions);
+  renderSketchMissions();
+}
+function advanceSketchMissions(evt){
+  let changed=false;
+  sketchMissions=sketchMissions.map(m=>{
+    const next=missionProgressFor(m, evt);
+    if(next.progress!==m.progress||next.done!==m.done) changed=true;
+    return next;
+  });
+  if(evt.isClear){
+    const next=sketchDailyFor({streak:sketchDaily.streak,lastDay:sketchDaily.lastDay}, sketchDaily.seed||todaySeed());
+    sketchDaily={seed:next.seed, streak:next.streak, lastDay:next.lastDay};
+    store.set(MISSION_KEYS.dailies, {streak:sketchDaily.streak,lastDay:sketchDaily.lastDay});
+    changed=true;
+  }
+  if(changed){
+    store.set(MISSION_KEYS.missions, sketchMissions);
+    renderSketchMissions();
+  }
+}
+function renderSketchMissions(){
+  const L=$("m-lines"), S=$("m-score"), D=$("m-daily");
+  if(!L||!S||!D) return;
+  const byId=Object.fromEntries(sketchMissions.map(m=>[m.id,m]));
+  L.textContent=sketchTextFor(byId['sk-lines']);
+  S.textContent=sketchTextFor(byId['sk-score']);
+  D.textContent=sketchDaily.streak>0
+    ? sketchTextFor({id:'sk-daily',kind:'daily',target:1,progress:1,done:true,streak:sketchDaily.streak})
+    : sketchTextFor({id:'sk-daily',kind:'daily',target:1,progress:0,done:false});
+  for(const [el,m] of [[L,byId['sk-lines']],[S,byId['sk-score']]]) el.classList.toggle('m-done', !!m.done);
+  D.classList.toggle('m-done', sketchDaily.streak>0);
 }
 /* ---- input: drag + tap fallback ---- */
 const dragLayer=$("drag-layer");
@@ -681,10 +756,12 @@ theme=store.get("bb_theme","cute");
 soundOn=store.get("bb_sound",true);
 vibOn=store.get("bb_vib",true);
 best=store.get("bb_best",0);
+loadSketch(); // issue 15 sketch: missions plus daily from namespaced keys
 $("btn-sound").classList.toggle("off",!soundOn); $("btn-sound").textContent=soundOn?"🔊":"🔇";
 $("btn-vib").classList.toggle("off",!vibOn);
 reset();
 applyTheme();
+renderSketchMissions(); // issue 15 sketch: first paint shows missions
 $("best").textContent=best;
 </script>
 </body>
