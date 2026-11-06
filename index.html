@@ -254,6 +254,49 @@ function gainFor(cellsPlaced, clearedCount, lines, streakAfter){
   return g;
 }
 function isNewBest(score, best){ return score>best; }
+// issue 16 missions seam: placement-derived mission event, pure (no DOM/audio/storage).
+// Carries the reducer facts later mission progress reads: lines, clearedCount,
+// streakAfter, boardCleared, plus the hand-computed score gain for this move.
+function missionEventFor({lines, clearedCount, streakAfter, boardCleared, cellsPlaced}){
+  return {
+    lines, clearedCount, streakAfter, boardCleared,
+    scoreGain: gainFor(cellsPlaced, clearedCount, lines, streakAfter),
+    isClear: clearedCount>0
+  };
+}
+// issue 16 missions seam: single-objective counter plus done flag from reducer events.
+// A lines mission accrues cleared lines on clear events only; a score mission
+// accrues every move gain including dry placements. Done stays done and the
+// mission identity rides through untouched, so acknowledgment fires exactly once.
+function missionProgressFor(mission, evt){
+  const keep = () => ({...mission, done: mission.done});
+  if(mission.done) return keep();
+  const kind = mission.kind || 'lines';
+  const delta = kind==='score' ? evt.scoreGain : (evt.isClear ? evt.lines : 0);
+  if(!delta) return keep();
+  const progress = Math.min(mission.target, mission.progress + delta);
+  return {...mission, progress, done: progress>=mission.target};
+}
+// issue 16 dailies: device-local seed plus strict consecutive streak, pure.
+// Seed is the device YYYY-MM-DD string, so the same date always maps to the
+// same daily with no server clock and no UTC normalization. Streak counts
+// strict consecutive calendar days: same day idempotent, next day plus one,
+// any gap of two or more days resets to one on next completion.
+// Keys sit beside existing bb_* keys; Classic keys stay untouched.
+const MISSION_KEYS = {missions: 'bb_missions', dailies: 'bb_dailies'};
+function dailySeedFor(year, month, day){
+  const p = n => String(n).padStart(2, '0');
+  return `${year}-${p(month)}-${p(day)}`;
+}
+function dailyStreakFor(state, todaySeed){
+  if(state.lastDay === todaySeed) return {streak: state.streak, lastDay: todaySeed};
+  const prev = new Date(state.lastDay + 'T00:00:00');
+  const today = new Date(todaySeed + 'T00:00:00');
+  if(isNaN(prev) || isNaN(today)) return {streak: 1, lastDay: todaySeed};
+  const gapDays = Math.round((today - prev) / 86400000);
+  if(gapDays === 1) return {streak: state.streak + 1, lastDay: todaySeed};
+  return {streak: 1, lastDay: todaySeed};
+}
 // ---- issue 05 juice policy: pure caps + plans, no DOM/audio/storage ----
 // CLEAR_MS/DROP_MS small so 180ms render matches SFX gap (doPlace), never block next placement.
 // 60fps: CSS anims touch transform/opacity only (pop/drop/comboPop/floatUp).
@@ -491,7 +534,7 @@ function doPlace(slotIdx, ar, ac){
   score += gainFor(res.cellsPlaced, res.clearedCells.length, res.lines, streak);
   // strict combo: streak builds only on consecutive clearing placements, dry placement resets
   const boardCleared=res.lines>0&&board.every(row=>row.every(v=>!v));
-  const evt={lines:res.lines,streakAfter:streak,boardCleared,clearedCount:res.clearedCells.length};
+  const evt=missionEventFor({lines:res.lines,clearedCount:res.clearedCells.length,streakAfter:streak,boardCleared,cellsPlaced:res.cellsPlaced});
   if(res.clearedCells.length){
     res.clearedCells.forEach(([r,c])=>cellAt(r,c).classList.add("clearing"));
     particles(res.clearedCells, res.lines>1||boardCleared);
