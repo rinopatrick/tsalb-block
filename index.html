@@ -674,6 +674,14 @@ function paintGhost(ar,ac,cells){
   return ok;
 }
 function clearGhost(){ document.querySelectorAll(".cell.ghost-ok,.cell.ghost-bad").forEach(e=>e.classList.remove("ghost-ok","ghost-bad")); }
+function rejectInvalid(ar,ac,cells){
+  sfx.bad(); buzz(40);
+  for(const [r,c] of cells){
+    const rr=ar+r, cc=ac+c;
+    if(rr>=0&&rr<N&&cc>=0&&cc<N) cellAt(rr,cc).classList.add("ghost-bad");
+  }
+  setTimeout(clearGhost,250);
+}
 function mountDragGhost(slot){
   dragLayer.innerHTML="";
   const {h,w}=shapeBounds(slot.cells);
@@ -696,11 +704,10 @@ trayEl.addEventListener("pointerdown",e=>{
   e.preventDefault();
   pokeIdle();
   const i=+p.dataset.i;
+  drag={slotIdx:i,cells:tray[i].cells,color:tray[i].color,moved:false,ar:0,ac:0,prevSelected:selected};
   selected=-1;
-  drag={slotIdx:i,cells:tray[i].cells,color:tray[i].color,moved:false,ar:0,ac:0};
   mountDragGhost(tray[i]);
   try{trayEl.setPointerCapture(e.pointerId);}catch{}
-  sfx.select();
 });
 trayEl.addEventListener("pointermove",e=>{
   if(!drag) return;
@@ -717,10 +724,12 @@ function endDrag(e){
   dragLayer.style.display="none";
   clearGhost();
   if(d.moved){
-    const ok=fits(board,d.cells,d.ar,d.ac);
-    if(ok) doPlace(d.slotIdx,d.ar,d.ac);
-    else { // treat as tap-select if released over tray
-      selected=d.slotIdx; renderTray(); sfx.select();
+    if(fits(board,d.cells,d.ar,d.ac)) doPlace(d.slotIdx,d.ar,d.ac);
+    else {
+      // invalid over board: shared reject; fully off-board: silent cancel
+      if(d.cells.some(([r,c])=>{ const rr=d.ar+r, cc=d.ac+c; return rr>=0&&rr<N&&cc>=0&&cc<N; }))
+        rejectInvalid(d.ar,d.ac,d.cells);
+      selected=d.prevSelected; renderTray();
     }
   } else {
     // simple tap: select / deselect
@@ -729,7 +738,7 @@ function endDrag(e){
   }
 }
 trayEl.addEventListener("pointerup",endDrag);
-trayEl.addEventListener("pointercancel",()=>{drag=null;dragLayer.style.display="none";clearGhost();});
+trayEl.addEventListener("pointercancel",()=>{ if(drag) selected=drag.prevSelected; drag=null; dragLayer.style.display="none"; clearGhost(); renderTray(); });
 boardEl.addEventListener("pointerdown",e=>{
   if(selected<0||paused||over) return;
   const t=e.target.closest(".cell");
@@ -743,9 +752,7 @@ boardEl.addEventListener("pointerdown",e=>{
     const ar=tr-pr, ac=tc-pc;
     if(fits(board,slot.cells,ar,ac)){ doPlace(selected,ar,ac); return; }
   }
-  sfx.bad(); buzz(40);
-  // flash invalid
-  t.classList.add("ghost-bad"); setTimeout(()=>t.classList.remove("ghost-bad"),250);
+  rejectInvalid(tr,tc,[[0,0]]);
 });
 /* ---- header buttons ---- */
 function applyTheme(){
