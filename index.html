@@ -308,6 +308,21 @@ function dailyStreakFor(state, todaySeed){
   if(gapDays === 1) return {streak: state.streak + 1, lastDay: todaySeed};
   return {streak: 1, lastDay: todaySeed};
 }
+function missionDoneFlipsFor(before, after){
+  const doneById = {};
+  for(const m of before) doneById[m.id] = m.done;
+  return after.filter(m => m.done && !doneById[m.id]);
+}
+// issue 29 missions seam: one adapter step per placement, pure (no DOM/audio/storage).
+// Advances every mission through the reducer event, advances the daily on a
+// played run (clear or dry) via sketchDailyFor, and reports the missions that
+// flipped to done this exact event so the adapter fires one acknowledgment.
+function sketchAdvanceFor(missions, dailyState, evt, todaySeed){
+  const after = missions.map(m => missionProgressFor(m, evt));
+  const flips = missionDoneFlipsFor(missions, after);
+  const daily = sketchDailyFor(dailyState, todaySeed);
+  return {missions: after, flips, daily};
+}
 // issue 15 sketch: throwaway mission registry plus text, pure (no DOM/audio/storage).
 // Two fixed missions (clear 10 lines, score 500 in one run) plus one daily slot,
 // all driven by the #16 seam. Text is the only display contract the panel reads.
@@ -564,18 +579,24 @@ function doPlace(slotIdx, ar, ac){
   // strict combo: streak builds only on consecutive clearing placements, dry placement resets
   const boardCleared=res.lines>0&&board.every(row=>row.every(v=>!v));
   const evt=missionEventFor({lines:res.lines,clearedCount:res.clearedCells.length,streakAfter:streak,boardCleared,cellsPlaced:res.cellsPlaced});
-  advanceSketchMissions(evt); // issue 15 sketch: thin adapter, events only
+  const flips = advanceSketchMissions(evt); // issue 15 sketch: thin adapter, events only
+  const missionFlipped = flips.length > 0;
   if(res.clearedCells.length){
     res.clearedCells.forEach(([r,c])=>cellAt(r,c).classList.add("clearing"));
     particles(res.clearedCells, res.lines>1||boardCleared);
     playPlan(soundPlanFor(evt)); // one plan per clear: never clips or stacks harshly
     const now=(typeof performance!=='undefined'?performance.now():Date.now());
-    switch(calloutKindFor(evt)){ // exactly one callout per clear: never double-fires
+    if(missionFlipped){ // issue 29: done flip wins the single callout, exactly once
+      showCombo('Mission complete!', theme==="classic"?"spark":"heart"); buzz([30,40,30]);
+    } else switch(calloutKindFor(evt)){ // exactly one callout per clear: never double-fires
       case 'board-clear': showCombo(theme==="classic"?"BOARD CLEAR!":"Board Clear!", theme==="classic"?"spark":theme==="midnight"?"star":"star"); buzz([50,50,50,50,80]); break;
       case 'combo': showCombo("Combo x"+streak+"!", theme==="classic"?"fire":"heart"); buzz([30,40,30]); break;
       case 'multi': showCombo(res.lines+" lines!", "spark"); buzz([30,40,30]); break;
       case 'encourage': if(encourageDue(now)){ lastEncourageAt=now; showCombo(pickEncourage(), theme==="classic"?"spark":"heart"); buzz(25); } break;
     }
+  } else if(missionFlipped){ // issue 29: dry done flip still acknowledged, single callout
+    playPlan(soundPlanFor({lines: 1, streakAfter: JUICE.COMBO_AT, boardCleared: false}));
+    showCombo('Mission complete!', theme==="classic"?"spark":"heart"); buzz([30,40,30]);
   } else { sfx.place(); buzz(10); }
   if(isNewBest(score,best)){ best=score; store.set("bb_best",best); $("newbest").textContent="🎉 new best!"; }
   if(res.clearedCells.length) setTimeout(()=>{ renderBoard(); endCheck(); }, JUICE.CLEAR_MS);
@@ -607,22 +628,16 @@ function resetSketchRun(){
   renderSketchMissions();
 }
 function advanceSketchMissions(evt){
-  let changed=false;
-  sketchMissions=sketchMissions.map(m=>{
-    const next=missionProgressFor(m, evt);
-    if(next.progress!==m.progress||next.done!==m.done) changed=true;
-    return next;
-  });
-  if(evt.isClear){
-    const next=sketchDailyFor({streak:sketchDaily.streak,lastDay:sketchDaily.lastDay}, sketchDaily.seed||todaySeed());
-    sketchDaily={seed:next.seed, streak:next.streak, lastDay:next.lastDay};
-    store.set(MISSION_KEYS.dailies, {streak:sketchDaily.streak,lastDay:sketchDaily.lastDay});
-    changed=true;
-  }
-  if(changed){
-    store.set(MISSION_KEYS.missions, sketchMissions);
-    renderSketchMissions();
-  }
+  const seed = sketchDaily.seed || todaySeed();
+  const next = sketchAdvanceFor(sketchMissions, {streak: sketchDaily.streak, lastDay: sketchDaily.lastDay}, evt, seed);
+  const changed = next.missions.some((m, i) => m.progress !== sketchMissions[i].progress || m.done !== sketchMissions[i].done)
+    || next.daily.streak !== sketchDaily.streak || next.daily.lastDay !== sketchDaily.lastDay;
+  sketchMissions = next.missions;
+  sketchDaily = next.daily;
+  store.set(MISSION_KEYS.missions, sketchMissions);
+  store.set(MISSION_KEYS.dailies, {streak: sketchDaily.streak, lastDay: sketchDaily.lastDay});
+  if(changed) renderSketchMissions();
+  return next.flips;
 }
 function renderSketchMissions(){
   const L=$("m-lines"), S=$("m-score"), D=$("m-daily");
