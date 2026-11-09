@@ -343,8 +343,17 @@ function sketchTextFor(m){
 }
 // ---- issue 05 juice policy: pure caps + plans, no DOM/audio/storage ----
 // CLEAR_MS/DROP_MS small so 180ms render matches SFX gap (doPlace), never block next placement.
-// 60fps: CSS anims touch transform/opacity only (pop/drop/comboPop/floatUp).
+// 60fps: CSS anims touch transform/opacity only (pop/drop/comboPop/floatUp/hintPulse).
 // Sounds: triangle/sine, <=0.15 vol, >=60ms stagger -> never clip or stack harshly.
+// ---- issue 31 perf budget: pure payload + frame floors, no DOM/audio/storage ----
+// RAW_MAX/GZIP_MAX cap first-paint cost on mobile data (SPEC: fast on mobile
+// data; deploy evidence 34,556B fetch at 706ms vs ~3s target -> ~2x headroom).
+// FRAME_MS is one 60fps frame; CLEAR_MS/DROP_MS/COMBO_MS above must fit it.
+const PERF = {
+  RAW_MAX: 65536,    // 64KB raw single file
+  GZIP_MAX: 20480,   // 20KB gzip single file
+  FRAME_MS: 16.7,    // one 60fps frame
+};
 const JUICE = {
   CLEAR_MS: 180,      // .cell.clearing pop; render/endCheck wait this long
   DROP_MS: 150,       // .cell.drop-in
