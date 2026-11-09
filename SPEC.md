@@ -4,7 +4,7 @@ The user's girlfriend loves playing Block Blast but is tired of the heavy ad loa
 
 ## Solution
 
-A web-based Block Blast clone shipped as a single self-contained `index.html` (inline CSS/JS, zero dependencies, zero ads, zero trackers), deployable as a Vercel static site. Phone-first portrait touch interaction (drag with tap-to-place fallback, ghost preview), desktop mouse support as a bonus. Classic Block Blast rules, dual theme (classic look + cute personalized theme, default cute), local best-score persistence, clear/combo animations, sound + vibration toggles, pause/restart, game-over overlay.
+A web-based Block Blast clone shipped as a single self-contained `index.html` (inline CSS/JS, zero dependencies, zero ads, zero trackers), deployable as a Vercel static site. Phone-first portrait touch interaction (drag with tap-to-place fallback, ghost preview), desktop mouse support as a bonus. Classic Block Blast rules, three themes (classic, cute, midnight; default cute), local best-score persistence, clear/combo animations, sound + vibration toggles, pause/restart, game-over overlay.
 
 ## User Stories
 
@@ -34,10 +34,11 @@ A web-based Block Blast clone shipped as a single self-contained `index.html` (i
 19. As a player, I want to pause and resume mid-run, so that interruptions don't kill my game.
 20. As a player, I want an explicit restart control, so that I can abandon a bad run without waiting for game over.
 
-### Cute personalized theme
+### Themes (classic, cute, midnight)
 
-21. As a player, I want the game to open in a cute theme (pastel pink/purple, hearts/stars effects, affectionate title), so that it feels made for me.
+21. As a player, I want the game to open in a cute theme (pastel purple, hearts/stars effects, affectionate title), so that it feels made for me.
 22. As a player, I want a classic Block Blast-like theme available via toggle, so that I can switch looks anytime.
+22b. As a player, I want a midnight theme (dark night palette, moon glow accents, calm title) available on the same toggle cycle, so that night play stays readable.
 23. As a player, I want my theme choice remembered, so that I don't re-toggle every visit.
 
 ### Desktop and sharing (deployer = boyfriend)
@@ -53,19 +54,22 @@ A web-based Block Blast clone shipped as a single self-contained `index.html` (i
 - **Single self-contained `index.html`.** All CSS and JS inline, no npm packages, no build step, no external requests (no fonts, no CDNs, no analytics). This is a deliberate quality decision, not just simplicity: touch input via Pointer Events, 60fps animations via CSS transforms, sound via synthesized WebAudio, vibration via `navigator.vibrate`, and best-score via `localStorage` are all native — a framework adds fragility and load time, not gameplay quality. Vercel serves it as a static file with zero config.
 - **Classic rules clone.** 8x8 grid, batches of 3 random pieces, tray refills when empty, full rows and columns clear, combo bonus for clears on consecutive moves, game over when no tray piece fits anywhere. (Prototype check recommended during build: confirm original clears rows + columns only, no 3x3-square clears.)
 - **Input model.** Pointer Events unify touch/mouse drag; ghost preview rendered on the grid during drag; tap-piece-then-tap-cell fallback for precision. Touch scrolling suppressed over the play area so drags never fight the page.
-- **Theming via CSS variables.** `data-theme` attribute switches classic vs. cute palettes; toggle in header; choice persisted in `localStorage`; default cute. V1 placeholder personalization: title nickname "princess", pink/purple pastel, hearts/star clear particles.
+- **Theming via CSS variables.** `data-theme` attribute switches the classic, cute, and midnight palettes on one toggle cycle (cute, midnight, classic); toggle in header; choice persisted in `localStorage`; default cute. Each theme owns its palette, particles, and copy with no leaks across themes. Cute: pastel purple, hearts/star clear particles, affectionate "princess" title. Midnight: dark night palette with moon glow accents, star particles, calm night title. Classic: Block Blast-like board look, geometric particle glyphs, neutral copy. V1 placeholder personalization: title nickname "princess".
 - **Audio without assets.** All sounds synthesized with WebAudio oscillators (place blip, clear chime, combo arpeggio, game-over tone); master sound toggle in header.
 - **Single test seam.** All game rules live in pure board-state functions (placement validity, apply placement, clear detection, scoring/combo, game-over check, piece definitions) with no DOM, audio, or storage access. Rendering, input, sound, and persistence are thin adapters around that seam. One seam total.
 - **State shape (from prototype discipline).** Board as 8x8 occupancy grid, tray as 3 slots (piece + used flag), score/best/combo-streak as numbers. Score events derive from one reducer-style transition: place → detect clears → award → check game over.
 
 ## Testing Decisions
 
+- **Scope rule:** automated tests cover the pure-logic seam only. CSS, animation timing, and sound output are never asserted by automated tests. They are verified by the manual QA matrix below.
 - **What makes a good test here:** external behavior of the pure-logic seam (given board + piece + position, placement accepted/rejected; given board, correct lines clear; given clear history, correct combo score; given board + tray, correct game-over verdict). Never test DOM structure, CSS, animation timing, or sound output.
 - **What gets tested:** the game-logic seam functions listed above. Rendering/input/audio/persistence are verified by manual QA, not automation.
 - **Prior art:** none — greenfield repo with no test infrastructure, and the zero-dependency constraint rules out test runners. Verification is a manual QA matrix on a real phone (Chrome + Safari): drag placement, tap fallback, ghost accuracy, clear/combo scoring vs. hand-computed cases, game-over correctness, best-score survival across reload, toggles (sound/vibration/theme/pause), and rotation/resize behavior.
 - **Seam confirmation (pending user):** one pure-logic seam, DOM adapters untested-by-automation, manual phone QA as the gate. Confirm this matches expectations before build.
 
 ## Out of Scope
+
+Local-first per ADR 0001 (`docs/adr/0001-missions-local-first-no-backend.md`): state lives on device in `localStorage`, no backend, no network calls. The zero third-party request rule in the Implementation Decisions guards this.
 
 - Accounts, login, cloud saves, leaderboards, social sharing.
 - Levels, missions, daily challenges, progression systems.
